@@ -1,0 +1,482 @@
+Sub 라벨출력시작()
+
+    If ActiveWorkbook.name <> "매입반품.xlsm" Then
+        MsgBox ("매입반품은 '매입반품.xlsm' 파일을 이용해 주세요.")
+        Exit Sub
+    End If
+    
+    UserForm2.Show
+    
+End Sub
+
+Sub 매입반품출력시작()
+
+    If ActiveWorkbook.name <> "매입반품.xlsm" Then
+        MsgBox ("매입반품은 '매입반품.xlsm' 파일을 이용해 주세요.")
+        Exit Sub
+    End If
+    
+    UserForm_createPO.Show
+    
+End Sub
+
+
+Sub 매입반품1()
+    
+    Dim allRows As Integer
+    
+    If ActiveWorkbook.name = "매입반품.xlsm" Then
+        allRows = Sheet1.Cells(1, 6).End(4).Row     '' 전체 행 개수
+        
+        For i = 2 To allRows
+            Sheet1.Cells(i, 1) = Application.WorksheetFunction.VLookup(Sheet1.Range("F" & i), DB.Range("C:I"), 7, False)
+        Next i
+    Else
+        MsgBox ("매입반품은 '매입반품.xlsm' 파일을 이용해 주세요.")
+        Exit Sub
+    End If
+
+End Sub
+
+Sub 매입반품()
+
+    If ActiveWorkbook.name <> "매입반품.xlsm" Then
+        MsgBox ("매입반품은 '매입반품.xlsm' 파일을 이용해 주세요.")
+        Exit Sub
+    End If
+
+    If Sheet1.Cells(2, 1) = "" Then
+        MsgBox ("매입반품은 매입반품1 부터 실행해 주세요.")
+        Exit Sub
+    Else
+        UserForm1.Show
+    End If
+End Sub
+
+Sub 매입반품출력()
+
+    Dim i, j As Integer
+    Dim startrow, startcol As Integer
+    Dim endrow, endcol As Integer
+    Dim duprow, DBLine As Integer
+    Dim fullPath, vtext As String
+    
+    DBLine = Sheets("DB").Cells(1, 2).End(4).Row
+
+    startrow = 1
+    startcol = 1
+    endrow = Sheets("완료").Cells(1, 2).End(4).Row    '테이블의 특정열 마지막행
+    endcol = Sheets("완료").Cells(1, 2).End(2).Column '테이블의 특정행 마지막열
+    '' endcol = 16 으로 마지막 데이터가 있는 행 번호
+    '' endrow = 마지막 노란색 빈공간도 데이터가 있는 열로 인식하여 -1 필요
+    
+    'MsgBox (endrow & " " & endcol)
+
+    Dim name As String
+    
+    If ActiveWorkbook.name = "매입반품.xlsm" Then
+    
+        If UserForm_createPO.ComboBox1.ListIndex = 0 Then
+              
+            ''RTP 템플릿 시트 복사 시트 제일 마지막에"BT_tmp"이름으로 시트 생성
+            Sheets("RTP").Copy After:=Sheets(Sheets.Count)
+            ActiveSheet.name = "0 RTP"
+            
+            Sheets("0 RTP").Cells(3, "C") = Sheets("완료").Cells(2, 2)
+            '' 기본 값 입력 메뉴열 & 제일아래 노란색 빈열 삭제해야 하므로 endrow - 2
+            For i = 1 To endrow - 1
+                Sheets("0 RTP").Cells(i + 3, "A") = "I"
+                Sheets("0 RTP").Cells(i + 3, "B") = i * 10
+                Sheets("0 RTP").Cells(i + 3, "D") = "3126"
+                Sheets("0 RTP").Cells(i + 3, "F") = "1005"
+                Sheets("0 RTP").Cells(i + 3, "H") = "EA"
+                Sheets("0 RTP").Cells(i + 3, "N") = "X"
+                Sheets("0 RTP").Cells(i + 3, "P") = "1"
+                Sheets("0 RTP").Cells(i + 3, "R") = "602"
+            Next i
+            
+            '' 제품코드 제조번호 수량 복사
+            Sheets("완료").Range("F2:F" & endrow).Copy
+            Sheets("0 RTP").Range("C4").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("J2:J" & endrow).Copy
+            Sheets("0 RTP").Range("E4").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("H2:H" & endrow).Copy
+            Sheets("0 RTP").Range("G4").PasteSpecial Paste:=xlPasteValues
+            
+            ''해당 시트 이름으로 파일 생성
+            fullPath = ActiveWorkbook.Path
+            ActiveSheet.Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+            
+            Sheets("0 RTP").Delete
+            Sheets("완료").Select
+            Sheets("완료").Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & "0 원본" & ".xlsx"
+            
+        ElseIf UserForm_createPO.ComboBox1.ListIndex = 1 Then
+        
+            ''BT 템플릿 시트 복사 시트 제일 마지막에"POI_tmp"이름으로 시트 생성
+            Sheets("BT").Copy After:=Sheets(Sheets.Count)
+            ActiveSheet.name = "0 BT"
+            
+            '' 기본 값 입력 메뉴열 & 제일아래 노란색 빈열 삭제해야 하므로 endrow - 2
+            For i = 1 To endrow - 1
+                Sheets("0 BT").Cells(i + 3, "A") = "I"
+                Sheets("0 BT").Cells(i + 3, "B") = i * 10
+                Sheets("0 BT").Cells(i + 3, "D") = "3125"
+                Sheets("0 BT").Cells(i + 3, "F") = "1005"
+                Sheets("0 BT").Cells(i + 3, "H") = "EA"
+                Sheets("0 BT").Cells(i + 3, "P") = "1"
+                Sheets("0 BT").Cells(i + 3, "S") = "1005"
+            Next i
+            
+            '' 제품코드 제조번호 수량 복사
+            Sheets("완료").Range("F2:F" & endrow).Copy
+            Sheets("0 BT").Range("C4").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("J2:J" & endrow).Copy
+            Sheets("0 BT").Range("E4").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("H2:H" & endrow).Copy
+            Sheets("0 BT").Range("G4").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("B2:B" & endrow).Copy
+            Sheets("0 BT").Range("U4").PasteSpecial Paste:=xlPasteValues
+            
+            ''해당 시트 이름으로 파일 생성
+            fullPath = ActiveWorkbook.Path
+            ActiveSheet.Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+            
+            Sheets("0 BT").Delete
+            Sheets("완료").Select
+            Sheets("완료").Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & "0 원본" & ".xlsx"
+            
+        ElseIf UserForm_createPO.ComboBox1.ListIndex = 2 Then
+        
+            ''BT 템플릿 시트 복사 시트 제일 마지막에"BT_tmp"이름으로 시트 생성
+            Sheets("POI").Copy After:=Sheets(Sheets.Count)
+            ActiveSheet.name = "BS (POI form)"
+            
+            '' 제품코드 제조번호 수량 복사
+            Sheets("완료").Range("J2:J" & endrow).Copy
+            Sheets("BS (POI form)").Range("G2").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("F2:F" & endrow).Copy
+            Sheets("BS (POI form)").Range("N2").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("H2:H" & endrow).Copy
+            Sheets("BS (POI form)").Range("Q2").PasteSpecial Paste:=xlPasteValues
+            
+            '' 기본 값 입력 메뉴열 & 제일아래 노란색 빈열 삭제해야 하므로 endrow - 1
+            For i = 1 To endrow - 1
+                Sheets("BS (POI form)").Cells(i + 1, "A") = "3101"
+                Sheets("BS (POI form)").Cells(i + 1, "B") = "ZPRE"
+                Sheets("BS (POI form)").Cells(i + 1, "D") = "10"
+                Sheets("BS (POI form)").Cells(i + 1, "E") = "'00"
+                Sheets("BS (POI form)").Cells(i + 1, "F") = "EDM"
+                Sheets("BS (POI form)").Cells(i + 1, "K") = "30207669"
+                Sheets("BS (POI form)").Cells(i + 1, "L") = "70309372"
+                Sheets("BS (POI form)").Cells(i + 1, "U") = "T21"
+                Sheets("BS (POI form)").Cells(i + 1, "V") = "T21"
+                Sheets("BS (POI form)").Cells(i + 1, "Y") = "3110"
+                Sheets("BS (POI form)").Cells(i + 1, "AD") = "1005"
+                Sheets("BS (POI form)").Cells(i + 1, "AF") = Application.WorksheetFunction.VLookup(Sheets("BS (POI form)").Cells(i + 1, "N"), Sheets("DB").Range("C2:I" & DBLine), 7, False)
+            Next i
+            
+            ''해당 시트 이름으로 파일 생성
+            fullPath = ActiveWorkbook.Path
+            ActiveSheet.Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+            
+            Sheets("BS (POI form)").Delete
+            Sheets("완료").Select
+        
+        ElseIf UserForm_createPO.ComboBox1.ListIndex = 3 Then
+
+            ''BT 템플릿 시트 복사 시트 제일 마지막에"POI_tmp"이름으로 시트 생성
+            Sheets("ksap").Copy After:=Sheets(Sheets.Count)
+            ActiveSheet.name = "0 ksap"
+
+
+            '' 제품코드 제조번호 수량 복사
+            Sheets("완료").Range("F2:F" & endrow).Copy
+            Sheets("0 ksap").Range("C2").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("H2:H" & endrow).Copy
+            Sheets("0 ksap").Range("J2").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("M2:M" & endrow).Copy
+            Sheets("0 ksap").Range("K2").PasteSpecial Paste:=xlPasteValues
+            Sheets("완료").Range("J2:J" & endrow).Copy
+            Sheets("0 ksap").Range("L2").PasteSpecial Paste:=xlPasteValues
+
+
+            '' 기본 값 입력 메뉴열 & 제일아래 노란색 빈열 삭제해야 하므로 endrow - 2
+            For i = 1 To endrow - 1
+                Sheets("0 ksap").Cells(i + 1, "A") = "0"
+                Sheets("0 ksap").Cells(i + 1, "B") = i
+                Sheets("0 ksap").Cells(i + 1, "D") = Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 2, False) '=VLOOKUP($C2,DB!$C:$N,2,FALSE)
+                Sheets("0 ksap").Cells(i + 1, "E") = Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 3, False)
+                Sheets("0 ksap").Cells(i + 1, "F") = Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 4, False)
+                Sheets("0 ksap").Cells(i + 1, "G") = Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 5, False)
+                Sheets("0 ksap").Cells(i + 1, "H") = Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 6, False)
+                Sheets("0 ksap").Cells(i + 1, "M") = Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 11, False)
+                Sheets("0 ksap").Cells(i + 1, "N") = Sheets("0 ksap").Cells(i + 1, "M") * Sheets("0 ksap").Cells(i + 1, "L")
+                If Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 7, False) = "" Then '=IF(VLOOKUP($C2,DB!$C:$N,7,FALSE)="","",VLOOKUP($C2,DB!$C:$N,7,FALSE))
+                    Sheets("0 ksap").Cells(i + 1, "I") = ""
+                Else
+                    Sheets("0 ksap").Cells(i + 1, "I") = Application.WorksheetFunction.VLookup(Sheets("0 ksap").Cells(i + 1, "C"), Sheets("DB").Range("C2:N" & DBLine), 7, False)
+                End If
+
+                '=VLOOKUP($C2,DB!$C:$N,11,FALSE)
+                '=$M2*$L2
+            Next i
+
+
+
+            ''해당 시트 이름으로 파일 생성
+            fullPath = ActiveWorkbook.Path
+            ActiveSheet.Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+
+            Sheets("0 ksap").Delete
+            Sheets("완료").Select
+        
+        Else
+            MsgBox ("매입반품출력은 '매입반품.xlsm' 파일을 이용해 주세요.")
+            Exit Sub
+        End If
+    End If
+End Sub
+
+
+Private Sub SaveB_Click()
+
+    Dim allText, Batch, Exp, stdBarCode As String           ''바코드 관련
+    Dim eightPos, allRows, ingRow, compRow As Integer       ''위치 관련
+    Dim find_sheet1, find_ing, find_ing_Batch As Range
+    
+    ''바코드 분할 관련 변수
+    Dim bt1, bt2, bt3 As String       ''bt4, bt5 바코드 분할
+    Dim btPos As Integer                        ''바코드 분할 위치
+
+    
+''  =================================   ====
+''  아무것도 없음 종료                  시작
+''  =================================   ====
+    If TextBox1.Text = "" Then
+        Exit Sub
+    End If
+''  =================================   ====
+''  아무것도 없음 종료                  끄읏
+''  =================================   ====
+    
+''--------------------------------------------------------------------
+''  allText : 전체 바코드       eightPos : 88 위치
+''  stdBarcode : 표준 바코드    Batch : 제조번호        Exp : 유효기한
+''--------------------------------------------------------------------
+
+''  =====================================     ====
+''  바코드에서 표준 바코드 분리 위한 세팅     시작
+''  =====================================     ====
+    allText = TextBox1.Text                                 '' 전체 바코드
+    eightPos = InStr(allText, "88")                         '' 88 위치
+    stdBarCode = Mid(allText, eightPos, 13)                 '' 표준 바코드
+    allRows = Sheet1.Cells(Rows.Count, 2).End(xlUp).Row     '' 전체 행 개수
+    ingRow = ing.Cells(Rows.Count, 2).End(xlUp).Row + 1    '' 재고중 시트의 전체 행 개수 (마지막행에 붙여넣어야 하기에 +1)
+    compRow = comp.Cells(Rows.Count, 2).End(xlUp).Row + 1 '' 완료 시트의 전체 행 개수 (마지막행에 붙여넣어야 하기에 +1)
+    Set find_sheet1 = Sheet1.Range("A:A").Find(stdBarCode, LookIn:=xlValues)
+    Set find_ing = ing.Range("A:A").Find(stdBarCode, LookIn:=xlValues)
+''  =====================================     ====
+''  바코드에서 표준 바코드 분리 위한 세팅     끄읏
+''  =====================================     ====
+    
+
+''  ======================================     ====
+''  바코드에서 Batch 유효기한 분리 본문        시작
+''  ======================================     ====
+    
+''   바코드 13자리를 판별후 나머지 바코드 bt1 에 저장
+    If Len(allText) < 17 Then
+        bt1 = 0
+    
+    ' 바코드 13자리를 판별후 나머지 바코드 bt1 에 저장
+    ElseIf Len(allText) > 16 Then
+        bt1 = Right(allText, Len(allText) - (eightPos + 12))
+        
+    '   bt1 에 저장된 바코드 시작이 17 일때 상세 처리
+        If Left(bt1, 2) = "17" Then
+            Exp = "20" & Mid(bt1, 3, 2) & "-" & Mid(bt1, 5, 2) & "-" & Mid(bt1, 7, 2)
+            bt2 = Right(bt1, Len(bt1) - 8)
+            If Left(bt2, 2) = "10" Then
+                btPos = InStr(bt2, "]") + InStr(bt2, "<")
+                If btPos = 0 Then
+                    Batch = Mid(bt2, 2, Len(bt2))
+                Else
+                    Batch = Mid(bt2, 3, Len(bt2) - (Len(bt2) - (btPos - 3)))
+                End If
+            ElseIf Left(bt2, 2) = "21" Then
+                If InStr(bt2, "]") > 1 Then
+                    btPos = InStr(bt2, "]") + 2
+                ElseIf InStr(bt2, "<") > 1 Then
+                    btPos = InStr(bt2, "<") + 3
+                End If
+                bt3 = Right(bt2, Len(bt2) - btPos)
+                If Left(bt3, 2) = "10" Then
+                    Batch = Mid(bt3, 3, Len(bt3) - (Len(bt3) - btPos + 3))
+                End If
+            End If
+
+    ' bt1 에 저장된 바코드 시작이 21 일때 상세 처리
+        ElseIf Left(bt1, 2) = "21" Then
+            If InStr(bt1, "]") > 1 Then
+                btPos = InStr(bt1, "]") + 2
+            ElseIf InStr(bt1, "<") > 1 Then
+                btPos = InStr(bt1, "<") + 3
+            End If
+            bt2 = Right(bt1, Len(bt1) - btPos)
+
+            If Left(bt2, 2) = "17" Then
+                Exp = "20" & Mid(bt2, 3, 2) & "." & Mid(bt2, 5, 2) & "." & Mid(bt2, 7, 2)
+                bt3 = Right(bt2, Len(bt2) - 8)
+                Batch = Right(bt3, Len(bt3) - 2)
+            ElseIf Left(bt2, 2) = "10" Then
+                If InStr(bt2, "]") > 1 Then
+                    btPos = InStr(bt2, "]")
+                ElseIf InStr(bt2, "<") > 1 Then
+                    btPos = InStr(bt2, "<")
+                End If
+                Batch = Mid(bt2, 3, Len(bt2) - (Len(bt2) - btPos + 3))
+                bt3 = Right(bt2, Len(bt2) - (Len(bt2) - btPos + 4))
+                Exp = "20" & Mid(bt3, 1, 2) & "." & Mid(bt3, 3, 2) & "." & Mid(bt3, 5, 2)
+            End If
+        
+        ElseIf Left(bt1, 2) = "10" Then
+            
+            If InStr(bt1, "]") > 1 Then
+                btPos = InStr(bt1, "]") + 2
+                Batch = Mid(bt1, 3, btPos - 5)
+            ElseIf InStr(bt1, "<") > 1 Then
+                btPos = InStr(bt1, "<") + 3
+                Batch = Mid(bt1, 3, btPos - 6)
+            End If
+            
+            bt2 = Right(bt1, Len(bt1) - btPos)
+            
+            If Left(bt2, 2) = "17" Then
+                Exp = "20" & Mid(bt2, 3, 2) & "." & Mid(bt2, 5, 2) & "." & Mid(bt2, 7, 2)
+            End If
+            
+        
+        End If
+        
+     End If
+''  ======================================     ====
+''  바코드에서 Batch 유효기한 분리 본문        끄읏
+''  ======================================     ====
+
+    Set find_ing_Batch = ing.Range("H:H").Find(Batch, LookIn:=xlValues)     '' 해당 Batch 가 재고중 시트에 있는지
+
+    If Not find_sheet1 Is Nothing Then      '' sheet1 시트에서 stdBarCode 검색 있을때
+    ing.Select
+''  =============================================     ====
+''  표준바코드로 해당 제품 검색후 ing 시트로 이동     시작
+        For i = 2 To allRows
+            If Sheet1.Cells(i, 1).Value = stdBarCode Then
+                Sheet1.Rows(i).Cut ing.Rows(ingRow)
+                ing.Range("J" & ingRow) = 0
+                Sheet1.Rows(i).Delete
+                ingRow = ingRow + 1                 '' 재고중 시트의 행 개수
+                i = i - 1
+                ing.Activate
+                ing.Cells(ingRow, 6).Select
+            End If
+        Next i
+''  표준바코드로 해당 제품 검색후 ing 시트로 이동     끄읏
+''  =============================================     ====
+
+
+''  ==========================================    ====
+''  ing시트서 표준바코드 & Batch 비교후 카운팅    시작
+        For i = 2 To ingRow - 1
+            If (ing.Cells(i, 1) = stdBarCode And ing.Cells(i, 8).Value = Batch) Or (ing.Cells(i, 1) = stdBarCode And ing.Cells(i, 8).Value = "") Then
+                If UserForm1.CheckBox1 Then
+                    ing.Range("J" & i) = ing.Range("I" & i)
+                    UserForm1.CheckBox1.Value = False
+                Else
+                    ing.Range("J" & i) = ing.Range("J" & i) + 1
+                    ing.Activate
+                    ing.Cells(i, 6).Select
+                End If
+            End If
+''-----------------완료 시트로 재고 완료 된 행 이동    시작
+            If ing.Range("J" & i) = ing.Range("I" & i) Then
+                ing.Rows(i).Cut comp.Rows(compRow)
+                ing.Rows(i).Delete
+                compRow = compRow + 1
+                comp.Activate
+                comp.Cells(compRow - 1, 6).Select
+            End If
+''------------------완료 시트로 재고 완료 된 행 이동    끄읏
+        Next i
+''  ing시트서 표준바코드 & Batch 비교후 카운팅    끄읏
+''  ==========================================    ====
+
+
+    ElseIf Not find_ing Is Nothing Then         '' 재고중 시트에 표준바코드가 있을때
+        If Not find_ing_Batch Is Nothing Then   '' 재고중 시트에 Batch가 있을때
+        ''  ==========================================    ====
+        ''  ing시트서 표준바코드 & Batch 비교후 카운팅    시작
+                For i = 2 To ingRow - 1
+                    If (ing.Cells(i, 1) = stdBarCode And ing.Cells(i, 8).Value = Batch) Or (ing.Cells(i, 1) = stdBarCode And ing.Cells(i, 8).Value = "") Then
+                        If UserForm1.CheckBox1 Then
+                            ing.Range("J" & i) = ing.Range("I" & i)
+                            UserForm1.CheckBox1.Value = False
+                        Else
+                            ing.Range("J" & i) = ing.Range("J" & i) + 1
+                            ing.Activate
+                            ing.Cells(i, 6).Select
+                        End If
+                    End If
+        ''-----------------완료 시트로 재고 완료 된 행 이동    시작
+                    If ing.Cells(i, "J") = ing.Cells(i, "I") Then
+                        ing.Rows(i).Cut comp.Rows(compRow)
+                        ing.Rows(i).Delete
+                        compRow = compRow + 1
+                        comp.Activate
+                        comp.Cells(compRow - 1, 6).Select
+                    End If
+        ''-----------------완료 시트로 재고 완료 된 행 이동    끄읏
+                Next i
+        ''  ing시트서 표준바코드 & Batch 비교후 카운팅    끄읏
+        ''  ==========================================    ====
+        ElseIf find_ing_Batch Is Nothing Then   '' 재고중 시트에 Batch가 없을때
+            MsgBox ("배치없음")
+        End If
+    
+
+    ElseIf find_sheet1 Is Nothing Or find_ing Is Nothing Then   '' 표준바코드가 없을때
+        MsgBox ("바코드없음")
+    End If
+
+    TextBox1.Text = ""          '' 텍스트박스 초기화
+    
+'    MsgBox ("BarCode " & allText)           '전체 바코드
+'    MsgBox ("Batch " & Batch)               '제조번호
+'    MsgBox ("stdBarCode " & stdBarCode)     '표준바코드 13자리
+'    MsgBox ("Exp " & Exp)                   '유효기한
+'    MsgBox ("allRows " & allRows)
+'    MsgBox ("ingRow " & ingRow)
+'    MsgBox ("compRow " & compRow)
+
+End Sub
+
+
+
+Private Sub TextBox1_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+
+    If KeyCode = 13 Then
+        Call SaveB_Click
+    End If
+
+End Sub
+

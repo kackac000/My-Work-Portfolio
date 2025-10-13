@@ -1,0 +1,794 @@
+
+'' 데이터에서 선택한 기준열에 맞춰 여러개 파일로 분할 생성
+Sub 파일분할()
+    
+    With Application
+        .ScreenUpdating = False
+        .EnableEvents = False
+        .Application.CutCopyMode = False
+        .Application.AskToUpdateLinks = False
+    End With
+    
+    Dim startRow    '시작 행
+    Dim startCol    '시작 열
+    Dim curRow      '현재 로우
+    Dim fileName    '저장할 파일 이름
+    Dim dataCount   '분리할 데이터 갯수
+    Dim endrow      '마지막 행
+    Dim endcol      '마지막 열
+    Dim count       '갯수
+    Dim dir         '저장취치
+    Dim activeSheetNumber   '시트번호
+    
+    On Error GoTo Err_StartCell '(시작위치)
+    Set 비교대상 = Range(UserForm_FileSplit.lbCell)
+
+    
+    '(저장폴더 에러처리)
+    Path = UserForm_FileSplit.lbLocation
+    If (Len(Path) = 0 Or StrComp(Path, "파일을 저장할 위치를 지정해주세요.", vbTextCompare) = 0) Then
+        GoTo Err_SaveFolder
+    End If
+        
+    startCol = 비교대상.column
+    startRow = 비교대상.Row
+    curRow = startRow
+        
+    endrow = ActiveSheet.Cells(startRow, startCol).End(4).Row    '테이블의 특정열 마지막행
+    endcol = ActiveSheet.Cells(startRow, startCol).End(2).column '테이블의 특정행 마지막열
+    
+    '' 시작 셀 마지막 셀 값들이 정상적인지 확인해본 창
+    'MsgBox (startCol & ", " & startRow & ", " & endcol & ", " & endRow)
+    
+    'Range(Cells(startrow, startcol), Cells(endrow, endcol)).Sort key1:=Cells(4, 21), order1:=xlAscending
+
+    
+    fileName = Cells(startRow, startCol).Value
+        
+    For i = startRow To endrow   'i 현재 Row
+        If Cells(i, startCol) = Cells(i + 1, startCol) Then
+            dataCount = dataCount + 1
+        Else
+            count = count + 1
+            '진행률 표시
+            UserForm_FileSplit.lbValue = fileName
+            UserForm_FileSplit.Repaint
+            
+            activeSheetNumber = ActiveSheet.index   '엑티브시트 번호
+            
+            '시트 복사
+            If UserForm_FileSplit.cbAllSheet Then
+                Sheets.Select
+                Sheets.Copy
+            Else
+                ActiveSheet.Copy
+            End If
+            
+            If FileExist(UserForm_FileSplit.lbLocation & "\" & fileName & ".xlsx") Then
+                MsgBox "기준에 중복이 있어 파일쪼개기를 중단합니다. 정렬을 정확히 하고 진행하시기 바랍니다."
+                Exit Sub
+            End If
+            
+            On Error GoTo Err_FileName:
+            Application.ActiveWorkbook.SaveAs fileName:=UserForm_FileSplit.lbLocation & "\" & fileName & ".xlsx"
+                        
+            If count = 1 Then
+                Rows(i + 1 & ":" & endrow).Delete   '아래쪽 삭제
+            Else
+                If i <> endrow Then '아래쪽 삭제
+                    Rows(i + 1 & ":" & endrow).Delete
+                End If
+                Rows(startRow & ":" & (i - dataCount)).Delete   '위쪽 삭제
+            End If
+    
+            Application.ActiveWorkbook.Close True
+            
+            dataCount = 1
+            fileName = Cells(i + 1, startCol).Value
+        End If
+    Next i
+    
+    '시트 선택
+    Sheets(1).Select
+    
+    With Application
+        .ScreenUpdating = True
+        .EnableEvents = True
+        .Application.CutCopyMode = True
+        .Application.AskToUpdateLinks = True
+    End With
+    
+    '완료 메시지창
+    UserForm_FileSplit_Msg.StartUpPosition = 2
+    UserForm_FileSplit_Msg.Top = 200
+    UserForm_FileSplit_Msg.Left = 200
+    UserForm_FileSplit_Msg.Show
+    
+    Exit Sub
+
+Err_SaveFolder:
+    MsgBox "저장위치를 지정해 주세요."
+    Exit Sub
+Err_StartCell:
+    MsgBox "시작위치에 문제가 있습니다. 시작위치를 정확히 지정해주세요."
+    Exit Sub
+Err_FileName:
+    MsgBox "저장중단(동일한 파일명이 존재하거나, 기준열에 파일명으로 사용할수없는 <>?[]:|* 등의 특수문자가 있거나, 파일명이 너무 길면 저장 안됨(경로포함 260자, 윈도우10기준))"
+    Exit Sub
+End Sub
+
+Sub 시트저장()
+    With Application
+        .ScreenUpdating = False
+        .EnableEvents = False
+        .Application.CutCopyMode = False
+        .Application.AskToUpdateLinks = False
+    End With
+        
+    Dim filePath    '파일경로
+    Dim fileName    '기존 파일명
+    Dim name        '저장할 파일명
+    Dim count       '갯수
+    Dim toSheet As Worksheet
+    Dim isCopy As Boolean   '복사대상여부
+    Dim isHidden As Boolean '숨김 시트 여부
+    count = Sheets.count
+    filePath = ActiveWorkbook.Path
+    fileName = ActiveWorkbook.name
+    isCopy = True
+    
+    For i = 1 To count
+        Set toSheet = ActiveWorkbook.Sheets(i)
+        
+        If toSheet.Visible = False Then
+            isHidden = True
+        Else
+            isHidden = False
+        End If
+            
+        If UserForm_SheetSave.cbHiddenFile Then '숨김파일도 포함이면
+            toSheet.Visible = True
+        Else    '숨김파일은 제거이면
+            If toSheet.Visible Then
+                isCopy = True
+            Else
+                isCopy = False
+            End If
+        End If
+        
+        If isCopy Then
+            toSheet.Copy
+            If UserForm_SheetSave.obFileSheet Then  '파일명 시트명
+                name = fileName & " " & toSheet.name
+            Else
+                name = toSheet.name                 '시트명
+            End If
+            
+            If UserForm_SheetSave.cbNumber Then     '숫자 포함 여부
+                name = i & "_" & name
+            End If
+            
+            Application.ActiveWorkbook.SaveAs filePath & "\" & name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+        End If
+        
+        '숨김시트는 다시 숨김
+        If isHidden Then
+                toSheet.Visible = False
+        End If
+        
+    Next i
+    
+    With Application
+        .ScreenUpdating = True
+        .EnableEvents = True
+        .Application.CutCopyMode = True
+        .Application.AskToUpdateLinks = True
+    End With
+    
+    MsgBox "저장완료"
+End Sub
+
+Sub 재고장생성()
+
+Dim i, j As Integer
+Dim startRow, startCol As Integer
+Dim endrow, endcol As Integer
+Dim duprow As Integer
+Dim gizone As Integer
+Dim S_name As String
+Dim fullPath As String
+
+    IsEmpty (S_name)
+    
+    startRow = 1 '2
+    startCol = 1 '2
+    endrow = ActiveSheet.Cells(1, 2).End(4).Row    '테이블의 특정열 마지막행
+    endcol = ActiveSheet.Cells(1, 2).End(2).column '테이블의 특정행 마지막열
+    '' endcol = 16 으로 마지막 데이터가 있는 행 번호
+    '' endrow = 마지막 노란색 빈공간도 데이터가 있는 열로 인식하여 -1 필요
+
+    'MsgBox (endcol & " " & endrow)
+    
+    ''GI-ZONE 로케이션 삭제
+    For i = 1 To endrow - 1
+        If Cells(i, "D").Value = "GI-ZONE" Then
+           Rows(i).Delete
+           i = i - 1
+        End If
+    Next
+        
+    '' sumif 를 사용하여 제품코드가 같은 제품들 수량 합계를 J열에 입력
+    For j = 2 To endrow - 1
+        If Cells(j, "E") = "" Then
+            Exit For
+        Else
+            Cells(j, "J") = Application.WorksheetFunction.SumIf(Range("E:E"), Cells(j, "E"), Range("I:I"))
+        End If
+    Next j
+    
+    Columns(10).Copy Columns(9)
+    
+    'MsgBox (endrow & " " & endcol)
+
+    '' 중복제거
+    ActiveSheet.Range(Cells(startRow, startCol), Cells(endrow - 1, endcol)).RemoveDuplicates Columns:=5, Header:=xlYes
+    
+    '' 중복제거 및 로케이션 정렬 후 테이블의 특정열 마지막행
+    '' 빈열없이 정상적으로 마지막 데이터 있는 행 번호
+    duprow = ActiveSheet.Cells(1, 2).End(4).Row
+    
+    'MsgBox (duprow)
+    
+    '' 로케이션으로 정렬
+    ''ActiveSheet.Range(Cells(startrow, startcol), Cells(duprow - 1, endcol)).Sort key1:=Range("D1"), Header:=xlYes
+    'Rows(startrow & ":" & duprow).Sort key1:=Range("D1"), Header:=xlYes
+    'Rows(duprow + 1 & ":" & endrow).Delete
+    
+    '' 시트 이름 입력
+    S_name = Application.InputBox("시트 이름을 입력하세요.", "Sheet name", Type:=2)
+    If S_name = "" Then
+        Exit Sub
+    ElseIf S_name = False Then
+        Exit Sub
+    End If
+    
+    Sheets.Add After:=ActiveSheet
+    ActiveSheet.name = S_name
+    
+    '' =============== 전수재고조사 양식 =========================
+    If UserForm_Stock.ComboBox1.ListIndex = 0 Then
+    
+        '' 셀 병합 전수재고조사 타이틀 및 서명란
+        Range("A1:E4").Merge
+        Range("F2:F4").Merge
+        Range("G2:G4").Merge
+        Range("H2:H4").Merge
+        
+        '' 기입 되는 메뉴들
+        Sheets(S_name).Cells(1, "A") = Application.InputBox(Prompt:="타이틀을 입력 하세요.", Default:="2024년 KDS 부산 재고조사 리스트", Type:=0)
+        Range("A1").Font.Size = 28
+        
+        Sheets(S_name).Cells(1, "F") = "담당자"
+        Sheets(S_name).Cells(1, "G") = "Key-In"
+        Sheets(S_name).Cells(1, "H") = "팀장"
+        
+        Sheets(S_name).Cells(5, "A") = "연번"
+        Sheets(S_name).Cells(5, "B") = "Owner"
+        Sheets(S_name).Cells(5, "C") = "Storage Bin"
+        Sheets(S_name).Cells(5, "D") = "제품코드"
+        Sheets(S_name).Cells(5, "E") = "제품명"
+        Sheets(S_name).Cells(5, "F") = "1차"
+        Sheets(S_name).Cells(5, "G") = "2차"
+        Sheets(S_name).Cells(5, "H") = "3차"
+        Sheets(S_name).Cells(5, "I") = "결과수량"
+        Sheets(S_name).Cells(5, "J") = "차이"
+        Sheets(S_name).Cells(5, "K") = "재고"
+        Sheets(S_name).Cells(5, "L") = "단가"
+        Sheets(S_name).Cells(5, "M") = "차액"
+        Sheets(S_name).Cells(5, "N") = "전산 총재고"
+        Sheets(S_name).Cells(5, "O") = "실재 총재고"
+        
+        '' 셀 색 입히기
+        Sheets(S_name).Range("F1:H1").Interior.Color = RGB(155, 194, 230)
+        Sheets(S_name).Range("A5:M5").Interior.Color = RGB(155, 194, 230)
+        
+        '' 셀 높이 설정
+        Sheets(S_name).Rows("1:5").RowHeight = 16.5
+        Sheets(S_name).Rows("6:" & duprow + 5).RowHeight = 24.7
+        
+        '' 폰트 사이즈 설정
+        Sheets(S_name).Range("F1:H1").Font.Size = 12
+        Sheets(S_name).Range("A5:O" & duprow + 5).Font.Size = 12
+        
+        '' 재고 품목 수량 카피
+        For i = 1 To duprow - 1
+            Sheets(S_name).Cells(i + 5, "A") = i
+        Next i
+        Sheets("Sheet1").Range("D2:F" & duprow).Copy
+        Sheets(S_name).Range("C6").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("N2:N" & duprow).Copy
+        Sheets(S_name).Range("B6").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("J2:J" & duprow).Copy
+        Sheets(S_name).Range("K6").PasteSpecial Paste:=xlPasteValues
+        
+        '' 글자 굴게 및 자동 맞춤
+        Sheets(S_name).Range("A1:O" & duprow + 4).Font.Bold = True
+        Sheets(S_name).Columns("A:O").AutoFit
+        
+        Sheets(S_name).Range("A1:O" & duprow + 4).VerticalAlignment = xlCenter
+        Sheets(S_name).Range("A1:O" & duprow + 4).HorizontalAlignment = xlCenter
+        
+        Sheets(S_name).Range("E6:E" & duprow + 4).HorizontalAlignment = xlLeft
+        Sheets(S_name).Range("L6:O" & duprow + 4).HorizontalAlignment = xlRight
+        
+        Sheets(S_name).Columns("F:K").ColumnWidth = 10.13
+        
+        Sheets(S_name).Cells(6, "I").Formula = "=IF(AND(H6=" & """""" & ",G6=" & """""" & "),F6,IF(H6=" & """""" & ",G6,H6))"
+        Sheets(S_name).Cells(6, "J").Formula = "=I6-K6"
+        Sheets(S_name).Cells(6, "M").Formula = "=L6*J6"
+        Sheets(S_name).Cells(6, "N").Formula = "=L6*K6"
+        Sheets(S_name).Cells(6, "O").Formula = "=L6*I6"
+    
+    '' =============== EzStock 재고 조사 양식 =========================
+    ElseIf UserForm_Stock.ComboBox1.ListIndex = 1 Then
+    
+        '' 메뉴들 입력
+        Sheets(S_name).Cells(1, "A") = "WHNO"
+        Sheets(S_name).Cells(1, "B") = "Party Entitled to Dispose"
+        Sheets(S_name).Cells(1, "C") = "Owner"
+        Sheets(S_name).Cells(1, "D") = "Principal code"
+        Sheets(S_name).Cells(1, "E") = "Stock Type"
+        Sheets(S_name).Cells(1, "F") = "Protocol ID"
+        Sheets(S_name).Cells(1, "G") = "Product"
+        Sheets(S_name).Cells(1, "H") = "Batch"
+        Sheets(S_name).Cells(1, "I") = "Vendor batch number"
+        Sheets(S_name).Cells(1, "J") = "Shelf Life Exp. Date"
+        Sheets(S_name).Cells(1, "K") = "Storage Type"
+        Sheets(S_name).Cells(1, "L") = "Storage Bin"
+        Sheets(S_name).Cells(1, "M") = "Available Qty BUoM"
+        Sheets(S_name).Cells(1, "N") = "UoM"
+        Sheets(S_name).Cells(1, "O") = "Serial Number"
+        Sheets(S_name).Cells(1, "P") = "HU"
+        Sheets(S_name).Cells(1, "Q") = "Usage"
+        
+        '' 각 메뉴들 셀 색 변경
+        Sheets(S_name).Range("A1:G1").Interior.Color = RGB(255, 255, 0)
+        Sheets(S_name).Range("K1:N1").Interior.Color = RGB(255, 255, 0)
+        Sheets(S_name).Range("H1:J1").Interior.Color = RGB(184, 204, 228)
+        Sheets(S_name).Range("O1:Q1").Interior.Color = RGB(184, 204, 228)
+        
+        '' EA & 3126 입력
+        For i = 2 To duprow
+            Sheets(S_name).Cells(i, "N") = "EA"
+            Sheets(S_name).Cells(i, "A") = "3126"
+            Sheets(S_name).Cells(i, "B") = "3126"
+            Sheets(S_name).Cells(i, "C") = "3126"
+        Next i
+        
+        '' 재고 품목 수량 카피
+        ''Sheets("Sheet1").Range("N2:N" & duprow).Copy
+        ''Sheets(S_name).Range("A2").PasteSpecial Paste:=xlPasteValues
+        ''Sheets(S_name).Range("B2").PasteSpecial Paste:=xlPasteValues
+        ''Sheets(S_name).Range("C2").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("A2:B" & duprow).Copy
+        Sheets(S_name).Range("D2").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("E2:E" & duprow).Copy
+        Sheets(S_name).Range("G2").PasteSpecial Paste:=xlPasteValues
+        ''Sheets("Sheet1").Range("F2:F" & duprow).Copy
+        ''Sheets(S_name).Range("I2").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("C2:C" & duprow).Copy
+        Sheets(S_name).Range("K2").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("D2:D" & duprow).Copy
+        Sheets(S_name).Range("L2").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("J2:J" & duprow).Copy
+        Sheets(S_name).Range("M2").PasteSpecial Paste:=xlPasteValues
+        
+        '' 글자 굴게 및 자동 맞춤
+        Sheets(S_name).Range("A1:Q1").Font.Bold = True
+        Sheets(S_name).Columns("A:Q").AutoFit
+        
+        
+        fullPath = ActiveWorkbook.Path
+        ActiveSheet.Copy
+        Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+        Application.ActiveWorkbook.Close True
+
+
+    '' =============== 일일 재고 조사 양식 =========================
+    ElseIf UserForm_Stock.ComboBox1.ListIndex = 2 Then
+    
+        '' 메뉴들 입력
+        Sheets(S_name).Cells(1, "A") = "로케이션"
+        Sheets(S_name).Cells(1, "B") = "제품코드"
+        Sheets(S_name).Cells(1, "C") = "제품명"
+        Sheets(S_name).Cells(1, "D") = "전산수량"
+        Sheets(S_name).Cells(1, "E") = "실수량"
+        Sheets(S_name).Cells(1, "F") = "재확인"
+        
+        '' 각 메뉴들 셀 색 변경
+        Sheets(S_name).Range("A1:F1").Interior.Color = RGB(216, 228, 188)
+        
+        '' 재고 품목 수량 카피
+        Sheets("Sheet1").Range("D2:F" & duprow).Copy
+        Sheets(S_name).Range("A2").PasteSpecial Paste:=xlPasteValues
+        Sheets("Sheet1").Range("J2:J" & duprow).Copy
+        Sheets(S_name).Range("D2").PasteSpecial Paste:=xlPasteValues
+        
+        '' 비고란에 재고 오류건 확인 수식
+        For i = 2 To endrow
+            Sheets(S_name).Cells(i, "F").Formula = "=if(ISBLANK(E" & i & ")," & """""" & ",FALSE)"
+        Next i
+        
+        '' 글자 굴게 및 자동 맞춤
+        Sheets(S_name).Range("A1:F1").Font.Bold = True
+        Sheets(S_name).Columns("A:F").AutoFit
+        
+        '' 원본데이터 전체 삭제
+        'Sheets(S_name).Range("A1:G" & endrow).Delete
+
+    End If
+End Sub
+
+Sub 중복제거()
+
+Dim i, j As Integer
+Dim startRow, startCol
+Dim endrow, endcol
+Dim duprow
+Dim gizone As Integer
+
+    startRow = 1 '2
+    startCol = 1 '2
+    endrow = ActiveSheet.Cells(1, 2).End(4).Row    '테이블의 특정열 마지막행
+    endcol = ActiveSheet.Cells(1, 2).End(2).column '테이블의 특정행 마지막열
+    '' endcol = 16 으로 마지막 데이터가 있는 행 번호
+    '' endrow = 마지막 노란색 빈공간도 데이터가 있는 열로 인식하여 -1 필요
+
+    'MsgBox (endcol & " " & endrow)
+    
+    ''GI-ZONE 로케이션 삭제
+    For i = 1 To endrow
+        If Cells(i, "D").Value = "GI-ZONE" Then
+           Rows(i).Delete
+           i = i - 1
+        End If
+    Next
+        
+    '' sumif 를 사용하여 제품코드가 같은 제품들 수량 합계를 J열에 입력
+    For j = 2 To endrow
+        If Cells(j, "E") = "" Then
+            Exit For
+        Else
+            Cells(j, "J") = Application.WorksheetFunction.SumIf(Range("E:E"), Cells(j, "E"), Range("I:I"))
+        End If
+    Next j
+    
+    'MsgBox (endrow & " " & endcol)
+
+    '' 중복제거
+    ActiveSheet.Range(Cells(startRow, startCol), Cells(endrow, endcol)).RemoveDuplicates Columns:=5, Header:=xlYes
+    
+    '' 중복제거 및 로케이션 정렬 후 테이블의 특정열 마지막행
+    duprow = ActiveSheet.Cells(1, 2).End(4).Row
+    
+    'MsgBox (duprow)
+    
+    '' 로케이션으로 정렬
+    'ActiveSheet.Range(Cells(startrow, startcol), Cells(duprow - 1, endcol)).Sort key1:=Range("D1"), Header:=xlYes
+    Rows(startRow & ":" & duprow).Sort key1:=Range("D1"), Header:=xlYes
+    'Rows(duprow + 1 & ":" & endrow).Delete
+    
+End Sub
+
+Sub PO생성()
+
+Dim i, j As Integer
+Dim startRow, startCol As Integer
+Dim endrow, endcol As Integer
+Dim duprow As Integer
+Dim fullPath, vtext As String
+    
+    startRow = 1
+    startCol = 1
+    endrow = ActiveSheet.Cells(1, 2).End(4).Row    '테이블의 특정열 마지막행
+    endcol = ActiveSheet.Cells(1, 2).End(2).column '테이블의 특정행 마지막열
+    '' endcol = 16 으로 마지막 데이터가 있는 행 번호
+    '' endrow = 마지막 노란색 빈공간도 데이터가 있는 열로 인식하여 -1 필요
+    
+    'MsgBox (endrow & " " & endcol)
+
+    Dim name As String
+    
+    If ActiveWorkbook.name = "PO Upload.xlsx" Then
+    
+        If UserForm_createPO.ComboBox1.ListIndex = 0 Then
+              
+            ''RTP 템플릿 시트 복사 시트 제일 마지막에"BT_tmp"이름으로 시트 생성
+            Sheets("RTP").Copy After:=Sheets(Sheets.count)
+            ActiveSheet.name = "RTP_tmp"
+            
+            '' 기본 값 입력 메뉴열 & 제일아래 노란색 빈열 삭제해야 하므로 endrow - 2
+            For i = 1 To endrow - 1
+                Sheets("RTP_tmp").Cells(i + 3, "A") = "I"
+                Sheets("RTP_tmp").Cells(i + 3, "B") = i * 10
+                Sheets("RTP_tmp").Cells(i + 3, "D") = "3126"
+                Sheets("RTP_tmp").Cells(i + 3, "F") = "1005"
+                Sheets("RTP_tmp").Cells(i + 3, "H") = "EA"
+                Sheets("RTP_tmp").Cells(i + 3, "N") = "X"
+                Sheets("RTP_tmp").Cells(i + 3, "P") = "1"
+                Sheets("RTP_tmp").Cells(i + 3, "R") = "602"
+            Next i
+            
+            '' 제품코드 제조번호 수량 복사
+            Sheets("Sheet1").Range("E2:E" & endrow).Copy
+            Sheets("RTP_tmp").Range("C4").PasteSpecial Paste:=xlPasteValues
+            Sheets("Sheet1").Range("H2:H" & endrow).Copy
+            Sheets("RTP_tmp").Range("E4").PasteSpecial Paste:=xlPasteValues
+            Sheets("Sheet1").Range("G2:G" & endrow).Copy
+            Sheets("RTP_tmp").Range("G4").PasteSpecial Paste:=xlPasteValues
+            
+            ''해당 시트 이름으로 파일 생성
+            fullPath = ActiveWorkbook.Path
+            ActiveSheet.Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+            
+            Sheets("RTP_tmp").Delete
+            Sheets("Sheet1").Select
+            
+        ElseIf UserForm_createPO.ComboBox1.ListIndex = 1 Then
+        
+            ''BT 템플릿 시트 복사 시트 제일 마지막에"POI_tmp"이름으로 시트 생성
+            Sheets("BT").Copy After:=Sheets(Sheets.count)
+            ActiveSheet.name = "BT_tmp"
+            
+            '' 기본 값 입력 메뉴열 & 제일아래 노란색 빈열 삭제해야 하므로 endrow - 2
+            For i = 1 To endrow - 1
+                Sheets("BT_tmp").Cells(i + 3, "A") = "I"
+                Sheets("BT_tmp").Cells(i + 3, "B") = i * 10
+                Sheets("BT_tmp").Cells(i + 3, "D") = "3125"
+                Sheets("BT_tmp").Cells(i + 3, "F") = "1005"
+                Sheets("BT_tmp").Cells(i + 3, "H") = "EA"
+                Sheets("BT_tmp").Cells(i + 3, "P") = "1"
+                Sheets("BT_tmp").Cells(i + 3, "S") = "1005"
+            Next i
+            
+            '' 제품코드 제조번호 수량 복사
+            Sheets("Sheet1").Range("E2:E" & endrow).Copy
+            Sheets("BT_tmp").Range("C4").PasteSpecial Paste:=xlPasteValues
+            Sheets("Sheet1").Range("H2:H" & endrow).Copy
+            Sheets("BT_tmp").Range("E4").PasteSpecial Paste:=xlPasteValues
+            Sheets("Sheet1").Range("G2:G" & endrow).Copy
+            Sheets("BT_tmp").Range("G4").PasteSpecial Paste:=xlPasteValues
+            Sheets("Sheet1").Range("A2:A" & endrow).Copy
+            Sheets("BT_tmp").Range("U4").PasteSpecial Paste:=xlPasteValues
+            
+            ''해당 시트 이름으로 파일 생성
+            fullPath = ActiveWorkbook.Path
+            ActiveSheet.Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+            
+            Sheets("BT_tmp").Delete
+            Sheets("Sheet1").Select
+            
+        ElseIf UserForm_createPO.ComboBox1.ListIndex = 2 Then
+        
+            ''BT 템플릿 시트 복사 시트 제일 마지막에"BT_tmp"이름으로 시트 생성
+            Sheets("POI").Copy After:=Sheets(Sheets.count)
+            ActiveSheet.name = "BS (POI form)"
+            
+            '' 제품코드 제조번호 수량 복사
+            Sheets("Sheet1").Range("I2:I" & endrow).Copy
+            Sheets("BS (POI form)").Range("G2").PasteSpecial Paste:=xlPasteValues
+            Sheets("Sheet1").Range("E2:E" & endrow).Copy
+            Sheets("BS (POI form)").Range("N2").PasteSpecial Paste:=xlPasteValues
+            Sheets("Sheet1").Range("G2:G" & endrow).Copy
+            Sheets("BS (POI form)").Range("Q2").PasteSpecial Paste:=xlPasteValues
+            
+            '' 기본 값 입력 메뉴열 & 제일아래 노란색 빈열 삭제해야 하므로 endrow - 1
+            For i = 1 To endrow - 1
+                Sheets("BS (POI form)").Cells(i + 1, "A") = "3101"
+                Sheets("BS (POI form)").Cells(i + 1, "B") = "ZPRE"
+                Sheets("BS (POI form)").Cells(i + 1, "D") = "10"
+                Sheets("BS (POI form)").Cells(i + 1, "E") = "'00"
+                Sheets("BS (POI form)").Cells(i + 1, "F") = "EDM"
+                Sheets("BS (POI form)").Cells(i + 1, "K") = "30207669"
+                Sheets("BS (POI form)").Cells(i + 1, "L") = "70309372"
+                Sheets("BS (POI form)").Cells(i + 1, "U") = "T21"
+                Sheets("BS (POI form)").Cells(i + 1, "V") = "T21"
+                Sheets("BS (POI form)").Cells(i + 1, "Y") = "3110"
+                Sheets("BS (POI form)").Cells(i + 1, "AD") = "1005"
+                Sheets("BS (POI form)").Cells(i + 1, "AF") = Application.WorksheetFunction.VLookup(Sheets("BS (POI form)").Cells(i + 1, "N"), Sheets("ksapDB").Range("C2:I7931"), 7, False)
+            Next i
+            
+            ''해당 시트 이름으로 파일 생성
+            fullPath = ActiveWorkbook.Path
+            ActiveSheet.Copy
+            Application.ActiveWorkbook.SaveAs fullPath & "\" & ActiveSheet.name & ".xlsx"
+            Application.ActiveWorkbook.Close True
+            
+            Sheets("BS (POI form)").Delete
+            Sheets("Sheet1").Select
+    
+        End If
+        
+    Else
+        MsgBox ("RTP, BT, POI의 PO 생성은 'PO Upload.xlsx' 파일을 이용해 주세요.")
+        Exit Sub
+    End If
+    
+   
+End Sub
+
+'사용자 정의 function
+'파일 존재여부 확인
+Private Function FileExist(filePath As String) As Boolean
+
+    Dim TestStr As String
+
+    On Error Resume Next
+      TestStr = dir(filePath)
+    On Error GoTo 0
+    
+    If TestStr = "" Then
+      FileExist = False
+    Else
+      FileExist = True
+    End If
+
+End Function
+
+Sub 시트해제()
+
+Dim i As Integer
+Dim dw As String
+ 
+dw = "1111"
+ 
+On Error Resume Next
+
+ For i = 1 To Sheets.count
+   
+   Sheets(i).Select
+   ActiveSheet.Unprotect Password:=dw 'inputbox로 부터 입력
+                  
+ Next i
+
+'MsgBox "처리완료, 비밀번호 오류여도 그냥 넘어가니 확인하세요", vbInformation
+
+End Sub
+
+Sub 시트보호()
+
+Dim i As Integer
+Dim dw As String
+ 
+dw = "1111"
+ 
+On Error Resume Next
+
+ For i = 1 To Sheets.count
+   
+   Sheets(i).Select
+   ActiveSheet.Protect Password:=dw 'inputbox로 부터 입력
+                  
+ Next i
+
+'MsgBox "처리완료, 비밀번호 오류여도 그냥 넘어가니 확인하세요", vbInformation
+
+End Sub
+
+Sub 번호할당()
+    
+    Dim i, j, num, Line, endrow As Integer
+    
+    j = 1
+    num = 1
+    
+    Line = Application.InputBox("파일내 제품 라인수", "라인수지정", Type:=1)
+    endrow = ActiveSheet.Cells(1, 3).End(4).Row    '테이블의 특정열 마지막행
+    
+    For i = 1 To endrow - 3
+    
+        If j < Line + 1 Then
+        
+            ActiveSheet.Cells(i + 3, 24) = num
+            j = j + 1
+            
+            If j = Line Then
+            
+                num = num + 1
+                j = 1
+                
+            End If
+            
+            
+        End If
+        
+    Next i
+    
+End Sub
+
+Sub Labels_()
+
+    Dim i As Long, r As Long, c As Long
+    Dim rowCount As Long, dataRow As Long
+    Dim labelsPerPage As Long: labelsPerPage = 16 '=============================== 2열 x 8행 3열 * 9행 (수원 16 부산 27)
+    Dim outputSheet As Worksheet, dataSheet As Worksheet
+    Dim pageOffset As Long
+    Dim templateRange As Range
+    Dim templateRange1 As Range
+
+    Dim desktopPath As String
+    desktopPath = CreateObject("WScript.Shell").SpecialFolders("Desktop")
+    
+    Dim TodayDate As String
+    ' 오늘 날짜를 "YYYYMMDD" 형식으로 가져옴
+    TodayDate = Format(Date, "yymmdd")
+    
+    Set dataSheet = Worksheets("데이터")
+    Set outputSheet = Worksheets("라벨출력")
+    Set templateRange = Worksheets("수원").Range("1:25") ' 서식 포함된 기본 템플릿 =========== 서식입력 (수원 1:25 부산 1:29)
+    Set templateRange1 = Worksheets("수원").Range("A:D") ' 서식 포함된 기본 템플릿 =========== 서식입력 (수원 A:D 부산 A:F)
+    
+    rowCount = dataSheet.Cells(Rows.count, 5).End(xlUp).Row
+    dataRow = 2
+    pageOffset = 0
+
+    outputSheet.Cells.ClearContents
+    
+    templateRange1.Copy
+    outputSheet.Cells(pageOffset + 1, 1).PasteSpecial Paste:=xlPasteAllUsingSourceTheme
+
+    Do While dataRow <= rowCount
+        ' 1. 서식 복사
+        templateRange.Copy
+        outputSheet.Cells(pageOffset + 1, 1).PasteSpecial Paste:=xlPasteAllUsingSourceTheme
+        'outputSheet.Cells(pageOffset + 1, 1).PasteSpecial Paste:=xlPasteValuesAndNumberFormats
+
+        ' 2. 데이터 입력 (2열 × 8행 = 16개 기준, 수정 가능)
+        For c = 0 To 1  ' 2열 0, 1 ============================================================ 입력 (2열; 1, 3열; 2)
+            For r = 0 To 7  ' 8행 0 ~ 7 ======================================================= 입력 (8행; 7, 9행; 8)
+                If dataRow <= rowCount Then
+                    Dim baseRow As Long, baseCol As Long
+                    baseRow = pageOffset + r * 3 + 1
+                    baseCol = c * 2 + 1
+
+                    With outputSheet
+                        .Cells(baseRow, baseCol).Value = dataSheet.Cells(dataRow, 6).Value                      ' 제품코드
+                        .Cells(baseRow, baseCol + 1).Formula = "*" & dataSheet.Cells(dataRow, 5).Value & "*"    ' 바코드"
+                        .Cells(baseRow + 1, baseCol).Value = dataSheet.Cells(dataRow, 7).Value                  ' 제품명
+                        .Cells(baseRow + 2, baseCol).Value = dataSheet.Cells(dataRow, 5).Value                  ' 로케이션
+                    End With
+                    dataRow = dataRow + 1
+                End If
+            Next r
+        Next c
+
+        ' 3. 다음 페이지 위치 (25행 간격으로 복사된 템플릿 반복)
+        pageOffset = pageOffset + 25  '========================================================== 입력 (수원; 25, 부산; 29)
+    Loop
+
+    ' 인쇄 영역 지정
+    outputSheet.PageSetup.PrintArea = "A1:D" & pageOffset   '==================================== 입력 (수원; A1:D, 부산; A1:F)
+
+    ' PDF로 한 번에 저장
+    outputSheet.ExportAsFixedFormat _
+        Type:=xlTypePDF, _
+        fileName:=desktopPath & "\" & TodayDate & " 라벨.pdf", _
+        Quality:=xlQualityStandard, _
+        IncludeDocProperties:=True, _
+        IgnorePrintAreas:=False, _
+        OpenAfterPublish:=True
+        
+
+    'MsgBox "PDF 생성 완료: 전체_서식라벨.pdf", vbInformation
+    
+    outputSheet.Columns("A:F").ClearContents
+    
+
+End Sub
+
+
