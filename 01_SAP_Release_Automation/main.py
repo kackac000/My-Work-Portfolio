@@ -4,7 +4,7 @@ SAP Release Macro
 - pyautogui (BSD 3-Clause) : 상업적 무료 사용 가능
 - pywin32 / win32gui (PSF License) : 상업적 무료 사용 가능
 - PyInstaller (GPL + bootloader exception) : 빌드 도구, 배포물 라이선스 무관
-"""
+""" 
 
 import sys
 import time
