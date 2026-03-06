@@ -1,0 +1,10 @@
+# 로그 파일 (회사 정보 보안 유지)
+macro_log.txt
+*.log
+
+# 파이썬 캐시 및 찌꺼기 파일들 (올릴 필요 없음)
+__pycache__/
+build/
+dist/
+*.pyc
+*.spec
