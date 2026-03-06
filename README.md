@@ -96,4 +96,4 @@
 
 ## 📬 Contact
 * **Email:** kackac000@gmail.com
-* **LinkedIn:** [www.linkedin.com/in/sw-jo-04750a38a](https://www.linkedin.com/in/sw-jo-04750a38a)
+* **LinkedIn:** https://www.linkedin.com/in/sw-jo-04750a38a
