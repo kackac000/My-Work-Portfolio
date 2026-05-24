@@ -12,8 +12,9 @@
 | 구분 | 기술 |
 | :--- | :--- |
 | **Languages** | Python, C#, VBA |
-| **Database** | DuckDB |
+| **Database** | DuckDB, PostgreSQL |
 | **Visualization** | Streamlit, Plotly Express |
+| **Backend** | FastAPI |
 | **Logistics Systems** | SAP EWM / ECC (운영 및 시스템 교육) |
 | **Key Skills** | 업무 자동화(RPA), 배송 경로 최적화, 바코드 스캐너 연동, 대용량 데이터 분석 |
 
@@ -39,7 +40,7 @@
 <br>
 
 ### 2. 📷 SAP 연동 지능형 바코드 스캐너
-[📂 SAP스캐너](/SAP스캐너)
+[📂 02_SAP_Scanner](./02_SAP_Scanner)
 
 | 항목 | 내용 |
 | :--- | :--- |
@@ -54,10 +55,10 @@ SAP가 인식하지 못하는 묶음·오염·오생성 바코드를 소프트�
 <br>
 
 ### 3. 📊 B2B 유통 데이터 분석 및 AI 수요 예측 대시보드
-📂 [03_Data_Dashboard](03_Data_Dashboard)
+[📂 03_Data_Dashboard](./03_Data_Dashboard)
 
 | 항목 | 내용 |
-|------|------|
+| :--- | :--- |
 | **Tech** | Python, DuckDB, Streamlit, Plotly Express |
 | **데이터 규모** | 연간 800~1,000만 건의 대용량 유통 데이터 처리 |
 | **핵심 기능** | 지점별 KPI 분석, 제품/매출처 순위, AI 기반 영업 기회 예측 |
@@ -70,7 +71,7 @@ SAP가 인식하지 못하는 묶음·오염·오생성 바코드를 소프트�
 <br>
 
 ### 4. 🚚 배송 경로 최적화 시뮬레이터
-[📂 배송경로](./배송경로)
+[📂 04_Delivery_Route_Optimizer](./04_Delivery_Route_Optimizer)
 
 | 항목 | 내용 |
 | :--- | :--- |
@@ -83,7 +84,7 @@ AI를 활용하여 아이디어를 실제 동작하는 코드로 구현하는 �
 <br>
 
 ### 5. 📊 엑셀 VBA 업무 자동화 도구 모음
-[📂 업무자동화](/업무자동화)
+[📂 05_Excel_VBA_Tools](./05_Excel_VBA_Tools)
 
 | 항목 | 내용 |
 | :--- | :--- |
@@ -95,6 +96,21 @@ AI를 활용하여 아이디어를 실제 동작하는 코드로 구현하는 �
 | **추가 도구** | 파일 분할기 |
 
 매일 반복되는 SAP ↔ Excel 수작업 전 과정을 자동화한 실무 도구 모음입니다.
+
+<br>
+
+### 6. 🔄 의약품 매입반품 통합 플랫폼
+[📂 06_Return_Platform](./06_Return_Platform)
+
+| 항목 | 내용 |
+| :--- | :--- |
+| **Tech** | Python, FastAPI, PostgreSQL, HTML/JS |
+| **핵심 기능** | 바코드 스캔 → 재고 자동 매칭 → SAP 업로드 파일 자동 생성 |
+| **해결한 문제** | SAP 재고 / 마스터 / 반품규정 데이터 단절 → 통합 DB로 일원화 |
+| **효과** | 스캔부터 문서 생성까지 전 과정 자동화 · 다중 사용자 동시 작업 지원 |
+
+현장에서 수작업으로 처리하던 매입반품 전 과정을 웹 기반 플랫폼으로 통합했습니다.
+**AI를 적극 활용하여 기획부터 구현까지 전 과정을 직접 진행한 프로젝트입니다.**
 
 ---
 
